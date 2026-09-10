@@ -1,0 +1,42 @@
+[
+  {
+    "ip": "198.51.100.22",
+    "failed_attempts": 10,
+    "span_seconds": 21,
+    "first_attempt": "2026-01-10 09:15:31",
+    "last_attempt": "2026-01-10 09:15:52",
+    "alert": true
+  },
+  {
+    "ip": "45.33.22.11",
+    "failed_attempts": 6,
+    "span_seconds": 12,
+    "first_attempt": "2026-01-10 09:12:09",
+    "last_attempt": "2026-01-10 09:12:21",
+    "alert": true
+  },
+  {
+    "ip": "203.0.113.45",
+    "failed_attempts": 4,
+    "span_seconds": 18389,
+    "first_attempt": "2026-01-10 10:03:12",
+    "last_attempt": "2026-01-10 15:09:41",
+    "alert": false
+  },
+  {
+    "ip": "192.168.1.50",
+    "failed_attempts": 2,
+    "span_seconds": 2,
+    "first_attempt": "2026-01-10 09:12:01",
+    "last_attempt": "2026-01-10 09:12:03",
+    "alert": false
+  },
+  {
+    "ip": "172.16.4.9",
+    "failed_attempts": 1,
+    "span_seconds": 0,
+    "first_attempt": "2026-01-10 16:18:02",
+    "last_attempt": "2026-01-10 16:18:02",
+    "alert": false
+  }
+]

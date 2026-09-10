@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSH Log Analyzer Report</title>
+<style>
+  :root {
+    --bg:        #f4f6f9;
+    --glow-1:    rgba(209,36,47,.07);
+    --glow-2:    rgba(9,105,218,.06);
+    --panel:     #ffffff;
+    --panel-2:   #f7f9fb;
+    --border:    #dde3ea;
+    --border-2:  #e8edf2;
+    --text:      #1c2128;
+    --text-2:    #414a56;
+    --muted:     #6b7480;
+    --faint:     #9aa4b0;
+    --accent:    #d1242f;
+    --accent-bg: rgba(209,36,47,.06);
+    --warn:      #b8860b;
+    --warn-bg:   rgba(184,134,11,.10);
+    --ok:        #1a7f37;
+    --ok-bg:     rgba(26,127,55,.08);
+    --track:     #e6ebf0;
+    --shadow:    0 1px 2px rgba(27,31,36,.06), 0 3px 8px rgba(27,31,36,.04);
+  }
+
+  [data-theme="dark"] {
+    --bg:        #08090d;
+    --glow-1:    rgba(248,81,73,.10);
+    --glow-2:    rgba(88,166,255,.08);
+    --panel:     #10141b;
+    --panel-2:   #151a22;
+    --border:    #1e242e;
+    --border-2:  #191f28;
+    --text:      #e6edf3;
+    --text-2:    #adbac7;
+    --muted:     #6e7681;
+    --faint:     #4d5560;
+    --accent:    #f85149;
+    --accent-bg: rgba(248,81,73,.06);
+    --warn:      #d29922;
+    --warn-bg:   rgba(210,153,34,.15);
+    --ok:        #3fb950;
+    --ok-bg:     rgba(63,185,80,.10);
+    --track:     #1c222c;
+    --shadow:    none;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(900px 400px at 12% -8%, var(--glow-1), transparent 60%),
+      radial-gradient(700px 400px at 88% -12%, var(--glow-2), transparent 60%);
+    color: var(--text);
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: 0;
+    padding: 40px 32px 64px;
+    transition: background .2s ease, color .2s ease;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ---------- header ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+    padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 26px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-bg), 0 0 12px var(--accent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.3 } }
+  h1 { margin:0; font-size:15px; letter-spacing:2.5px; text-transform:uppercase; font-weight:700; }
+  .right { display:flex; align-items:center; gap:16px; }
+  .meta { font-family: Consolas, monospace; font-size:12px; color: var(--muted); }
+  .meta b { color: var(--text-2); font-weight:600; }
+
+  .theme-btn {
+    background: var(--panel); border:1px solid var(--border); color: var(--muted);
+    border-radius:8px; padding:7px 12px; font-size:12px; cursor:pointer;
+    font-family:Consolas,monospace; box-shadow: var(--shadow);
+  }
+  .theme-btn:hover { color: var(--text); }
+
+  /* ---------- banner ---------- */
+  .banner {
+    display:flex; align-items:center; gap:13px;
+    padding:15px 18px; border-radius:10px; font-size:14px; margin-bottom:24px;
+    border:1px solid var(--accent); background: var(--accent-bg);
+    box-shadow: var(--shadow);
+  }
+  .banner-clear { border-color: var(--ok); background: var(--ok-bg); }
+  .banner .icon {
+    font-family:Consolas,monospace; font-weight:700; font-size:13px; color: var(--accent);
+    border:2px solid var(--accent); border-radius:50%;
+    width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .banner-clear .icon { color: var(--ok); border-color: var(--ok); font-size:11px; }
+
+  /* ---------- stats ---------- */
+  .stats {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr));
+    gap:14px; margin-bottom:28px;
+  }
+  .stat {
+    position:relative; background: var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:18px 20px; overflow:hidden; box-shadow: var(--shadow);
+  }
+  .stat::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--faint); }
+  .stat.danger::before { background: var(--accent); }
+  .stat.warn::before { background: var(--warn); }
+  .stat .num {
+    font-family:Consolas,monospace; font-size:32px; font-weight:700;
+    line-height:1; letter-spacing:-1px;
+  }
+  .stat.danger .num { color: var(--accent); }
+  .stat.warn .num { color: var(--warn); }
+  .stat .lbl {
+    color: var(--muted); font-size:10px; text-transform:uppercase;
+    letter-spacing:1.3px; margin-top:8px;
+  }
+
+  /* ---------- controls ---------- */
+  .controls { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:12px; }
+  .chip {
+    background: var(--panel); border:1px solid var(--border); color: var(--muted);
+    padding:7px 14px; border-radius:20px; font-size:12px; cursor:pointer;
+    font-family:Consolas,monospace; letter-spacing:.5px; transition: all .15s ease;
+  }
+  .chip:hover { border-color: var(--faint); color: var(--text); }
+  .chip.on { background: var(--panel-2); border-color: var(--faint); color: var(--text); font-weight:600; }
+  .chip .n { opacity:.55; margin-left:5px; }
+
+  .search {
+    margin-left:auto; background: var(--panel); border:1px solid var(--border);
+    border-radius:8px; padding:8px 13px; color: var(--text);
+    font-family:Consolas,monospace; font-size:13px; width:220px;
+    transition: border-color .15s ease;
+  }
+  .search:focus { outline:none; border-color: var(--faint); }
+  .search::placeholder { color: var(--faint); }
+
+  .showing { font-family:Consolas,monospace; font-size:11px; color: var(--faint); margin-bottom:10px; }
+
+  /* ---------- table ---------- */
+  .table-wrap {
+    overflow-x:auto; border:1px solid var(--border); border-radius:10px;
+    background: var(--panel); box-shadow: var(--shadow);
+  }
+  table { width:100%; border-collapse:collapse; }
+  th {
+    text-align:left; padding:12px 18px; background: var(--panel-2); color: var(--muted);
+    font-size:10px; text-transform:uppercase; letter-spacing:1.2px;
+    white-space:nowrap; border-bottom:1px solid var(--border);
+    cursor:pointer; user-select:none;
+  }
+  th:hover { color: var(--text); }
+  th .arrow { opacity:0; margin-left:5px; font-size:9px; }
+  th.sorted { color: var(--text); }
+  th.sorted .arrow { opacity:1; }
+  td { padding:14px 18px; border-top:1px solid var(--border-2); font-size:14px; white-space:nowrap; }
+  tr:hover td { background: var(--panel-2); }
+  tr.row-high td { background: var(--accent-bg); }
+
+  .ip { font-family:Consolas,monospace; color: var(--text-2); font-weight:600; }
+  .figure { font-family:Consolas,monospace; font-weight:600; }
+  .time { font-family:Consolas,monospace; font-size:13px; color: var(--muted); }
+
+  .pill {
+    display:inline-block; padding:4px 9px; border-radius:5px;
+    font-size:10px; font-weight:700; letter-spacing:1px; font-family:Consolas,monospace;
+  }
+  .pill-high  { background: var(--accent); color:#fff; }
+  .pill-watch { background: var(--warn-bg); color: var(--warn); border:1px solid var(--warn); }
+  .pill-clear { background: var(--panel-2); color: var(--muted); border:1px solid var(--border); }
+
+  .bar { width:120px; height:6px; background: var(--track); border-radius:3px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:3px; transition: width .3s ease; }
+  .fill-high  { background: var(--accent); }
+  .fill-watch { background: var(--warn); }
+  .fill-clear { background: var(--faint); }
+
+  .empty { padding:40px; text-align:center; color: var(--faint); font-size:13px; }
+
+  .rule {
+    margin-top:20px; padding:13px 18px; border-left:3px solid var(--border);
+    color: var(--muted); font-size:12px; font-family:Consolas,monospace;
+  }
+  .rule b { color: var(--text-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>SSH Log Analyzer</h1>
+    </div>
+    <div class="right">
+      <div class="meta">source <b>sample.log</b> &nbsp;·&nbsp; generated <b>2026-09-10 16:09</b></div>
+      <button class="theme-btn" id="theme">dark mode</button>
+    </div>
+  </div>
+
+  <div id="banner"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <button class="chip on" data-filter="all">ALL <span class="n"></span></button>
+    <button class="chip" data-filter="high">HIGH <span class="n"></span></button>
+    <button class="chip" data-filter="watch">WATCH <span class="n"></span></button>
+    <button class="chip" data-filter="clear">CLEAR <span class="n"></span></button>
+    <input class="search" id="search" placeholder="filter by IP...">
+  </div>
+
+  <div class="showing" id="showing"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-key="severity">Severity <span class="arrow">▼</span></th>
+          <th data-key="ip">IP address <span class="arrow">▼</span></th>
+          <th data-key="failed_attempts">Attempts <span class="arrow">▼</span></th>
+          <th>Volume</th>
+          <th data-key="span_seconds">Span <span class="arrow">▼</span></th>
+          <th data-key="first_attempt">First <span class="arrow">▼</span></th>
+          <th data-key="last_attempt">Last <span class="arrow">▼</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No IP addresses match that filter.</div>
+  </div>
+
+  <div class="rule">detection rule &nbsp;·&nbsp; <b>3+ failed attempts within 60 seconds</b></div>
+
+</div>
+
+<script>
+// ---- the data, written in by analyzer.py ----
+const FINDINGS  = [{"ip": "198.51.100.22", "failed_attempts": 10, "span_seconds": 21, "first_attempt": "2026-01-10 09:15:31", "last_attempt": "2026-01-10 09:15:52", "alert": true}, {"ip": "45.33.22.11", "failed_attempts": 6, "span_seconds": 12, "first_attempt": "2026-01-10 09:12:09", "last_attempt": "2026-01-10 09:12:21", "alert": true}, {"ip": "203.0.113.45", "failed_attempts": 4, "span_seconds": 18389, "first_attempt": "2026-01-10 10:03:12", "last_attempt": "2026-01-10 15:09:41", "alert": false}, {"ip": "192.168.1.50", "failed_attempts": 2, "span_seconds": 2, "first_attempt": "2026-01-10 09:12:01", "last_attempt": "2026-01-10 09:12:03", "alert": false}, {"ip": "172.16.4.9", "failed_attempts": 1, "span_seconds": 0, "first_attempt": "2026-01-10 16:18:02", "last_attempt": "2026-01-10 16:18:02", "alert": false}];
+const THRESHOLD = 3;
+
+// ---- work out a severity for one record ----
+function severityOf(r) {
+  if (r.alert) return "high";
+  if (r.failed_attempts >= THRESHOLD) return "watch";
+  return "clear";
+}
+
+FINDINGS.forEach(r => r.severity = severityOf(r));
+
+const SEV_ORDER    = { high: 3, watch: 2, clear: 1 };
+const MAX_ATTEMPTS = Math.max(...FINDINGS.map(r => r.failed_attempts));
+
+let activeFilter = "all";
+let searchText   = "";
+let sortKey      = "failed_attempts";
+let sortDir      = "desc";
+
+// ---- top summary boxes and banner ----
+function drawStats() {
+  const highs   = FINDINGS.filter(r => r.severity === "high").length;
+  const watches = FINDINGS.filter(r => r.severity === "watch").length;
+  const total   = FINDINGS.reduce((sum, r) => sum + r.failed_attempts, 0);
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="num">${FINDINGS.length}</div><div class="lbl">IP addresses seen</div></div>
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Failed logins</div></div>
+    <div class="stat danger"><div class="num">${highs}</div><div class="lbl">Alerts raised</div></div>
+    <div class="stat warn"><div class="num">${watches}</div><div class="lbl">Watch list</div></div>
+  `;
+
+  document.getElementById("banner").innerHTML = highs > 0
+    ? `<div class="banner"><span class="icon">!</span><div><b>${highs}</b> IP address${highs === 1 ? "" : "es"} match the brute-force rule and need investigation.</div></div>`
+    : `<div class="banner banner-clear"><span class="icon">&#10003;</span><div>No brute-force patterns detected in this log.</div></div>`;
+
+  document.querySelectorAll(".chip").forEach(chip => {
+    const f = chip.dataset.filter;
+    const n = f === "all" ? FINDINGS.length : FINDINGS.filter(r => r.severity === f).length;
+    chip.querySelector(".n").textContent = n;
+  });
+}
+
+// ---- the table ----
+function drawRows() {
+  let list = FINDINGS.slice();
+
+  if (activeFilter !== "all") list = list.filter(r => r.severity === activeFilter);
+  if (searchText)             list = list.filter(r => r.ip.includes(searchText));
+
+  list.sort((a, b) => {
+    let x = a[sortKey], y = b[sortKey];
+    if (sortKey === "severity") { x = SEV_ORDER[x]; y = SEV_ORDER[y]; }
+    if (x < y) return sortDir === "asc" ? -1 : 1;
+    if (x > y) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  document.getElementById("rows").innerHTML = list.map(r => {
+    const width = Math.round(r.failed_attempts / MAX_ATTEMPTS * 100);
+    return `
+      <tr class="row-${r.severity}">
+        <td><span class="pill pill-${r.severity}">${r.severity.toUpperCase()}</span></td>
+        <td class="ip">${r.ip}</td>
+        <td class="figure">${r.failed_attempts}</td>
+        <td><div class="bar"><div class="bar-fill fill-${r.severity}" style="width:${width}%"></div></div></td>
+        <td class="figure">${r.span_seconds}s</td>
+        <td class="time">${r.first_attempt.slice(11)}</td>
+        <td class="time">${r.last_attempt.slice(11)}</td>
+      </tr>`;
+  }).join("");
+
+  document.getElementById("empty").hidden = list.length > 0;
+  document.getElementById("showing").textContent =
+    `showing ${list.length} of ${FINDINGS.length} IP addresses`;
+
+  document.querySelectorAll("th").forEach(th => {
+    th.classList.toggle("sorted", th.dataset.key === sortKey);
+    const arrow = th.querySelector(".arrow");
+    if (arrow) arrow.textContent = sortDir === "asc" ? "▲" : "▼";
+  });
+}
+
+// ---- filter chips ----
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    activeFilter = chip.dataset.filter;
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("on"));
+    chip.classList.add("on");
+    drawRows();
+  });
+});
+
+// ---- search box ----
+document.getElementById("search").addEventListener("input", e => {
+  searchText = e.target.value.trim();
+  drawRows();
+});
+
+// ---- sortable column headings ----
+document.querySelectorAll("th[data-key]").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.key;
+    if (key === sortKey) {
+      sortDir = sortDir === "asc" ? "desc" : "asc";
+    } else {
+      sortKey = key;
+      sortDir = "desc";
+    }
+    drawRows();
+  });
+});
+
+// ---- light / dark toggle ----
+document.getElementById("theme").addEventListener("click", () => {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  document.getElementById("theme").textContent = dark ? "dark mode" : "light mode";
+});
+
+drawStats();
+drawRows();
+</script>
+</body>
+</html>

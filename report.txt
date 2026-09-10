@@ -1,0 +1,5 @@
+[ALERT] 198.51.100.22 -> 10 failed attempts in 21 seconds - possible brute-force
+[ALERT] 45.33.22.11 -> 6 failed attempts in 12 seconds - possible brute-force
+203.0.113.45 -> 4 failed attempts
+192.168.1.50 -> 2 failed attempts
+172.16.4.9 -> 1 failed attempts
