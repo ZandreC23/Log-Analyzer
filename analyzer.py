@@ -83,5 +83,5 @@ template = template.replace("THRESHOLD_VALUE", str(THRESHOLD))
 template = template.replace("WINDOW_VALUE", str(WINDOW_SECONDS))
 template = template.replace("DATA_GOES_HERE", json.dumps(findings))
 
-with open("report.html", "w") as dashboard:
+with open("index.html", "w") as dashboard:
     dashboard.write(template)
